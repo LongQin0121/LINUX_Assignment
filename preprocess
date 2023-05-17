@@ -32,6 +32,15 @@ awk -F"\t" '
         # Remove unwanted characters after / or , from $5
         gsub(/[\/,].*/, "", $5);
 
+	# Adjust the year if it has 2 digits
+        if (length(date[3]) == 2) {
+            if (date[3] < 24)
+                date[3] += 2000;
+            else if (date[3] > 50)
+                date[3] += 1900;
+        }
+
+
         # Check if the date is valid
         # and skip two-digit years that are greater than 24 or less than 50
         if (date[1] > 0 && date[1] < 13 && date[3] > 100) {
