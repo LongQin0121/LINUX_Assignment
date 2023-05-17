@@ -1,0 +1,47 @@
+#!/bin/bash
+
+# Check if there is an argument
+if [ $# -ne 1 ]; then
+    echo "You need an argument" >/dev/stderr
+    exit 1
+fi
+
+# Check if the .tsv file exists
+if [ ! -s "$1" ]; then
+    echo "$1 is not a file or has zero length" >/dev/stderr
+    exit 2
+fi
+
+awk -F"\t" '
+    BEGIN {
+      # Add header to the output
+      print "Name_of_Covered_Entity\tState\tIndividuals_Affected\tDate_of_Breach\tType_of_Breach\tMonth\tYear"
+    }
+
+    # Modify the data: skip empty values, $3 should be a non-negative value
+    NR > 1 && $1 != "" && $2 != "" && $3 != "" && $4 != "" && $5 != "" && $3 ~/^[0-9]+$/ && $3 > 0 {
+        # Split data if it is a range by hyphen and use the first date
+        if (index($4, "-") > 0) {
+            # Split the substring of $4 before the first "-" and store the components as date array
+            split(substr($4, 1, index($4, "-") - 1), date, "/");
+        } else {
+            # Split $4 directly into date array using "/" as the delimiter
+            split($4, date, "/");
+        }
+
+        # Remove unwanted characters after / or , from $5
+        gsub(/[\/,].*/, "", $5);
+
+        # Check if the date is valid
+        # and skip two-digit years that are greater than 24 or less than 50
+        if (date[1] > 0 && date[1] < 13 && date[3] > 100) {
+            # Extract the month
+            month = sprintf("%d", date[1]);
+
+            # Convert month to single digit if it is less than 10
+            if (length(month) == 2 && month < 10)
+                month = substr(month, 2);
+
+            print $1"\t"$2"\t"$3"\t"$4"\t"$5"\t"month"\t"date[3];
+        }
+    }' "$1" 

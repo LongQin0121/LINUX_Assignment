@@ -1,0 +1,58 @@
+#!/bin/bash
+
+# Check if there is an argument
+if [ $# -ne 1 ]; then
+    echo "You need an argument" >/dev/stderr
+    exit 1
+fi
+
+# Check if the .tsv file exists
+if [ ! -s "$1" ]; then
+    echo "$1 is not a file or has zero length" >/dev/stderr
+    exit 2
+fi
+
+DATA_FILE="$1"
+
+# Extract and format the two-digit month from field $6 directly,
+# then sort and count the unique values, saving the results in tmp_file.
+awk -F'\t' 'NR>1 {
+    #month = sprintf("%02d", $6);
+    print $6
+}' "$DATA_FILE" | sort | uniq -c > tmp_file
+
+# Calculate median using ternary operator
+MEDIAN=$(sort -n tmp_file | awk '{
+    a[NR] = $1
+} END {
+    print (NR%2 == 0) ? (a[NR/2] + a[NR/2+1]) / 2 : a[(NR+1)/2]
+}')
+
+# Calculate median absolute deviation (MAD) using ternary operator
+MAD=$( gawk -v median="$MEDIAN" '{
+    abs = ($1 > median) ? $1 - median : median - $1;
+    a[NR] = abs
+} END {
+    asort(a);
+    print (NR%2 == 0) ? (a[NR/2] + a[NR/2+1]) / 2 : a[(NR+1)/2]
+}' tmp_file )
+
+echo "Median: $MEDIAN"
+echo "MAD: $MAD"
+
+# Print header
+echo -e "Month\tIncidents\tDeviation"
+
+# Print table with each row showing the month, incidents number, and symbol
+awk -v median="$MEDIAN" -v mad="$MAD" 'BEGIN {
+    OFS = "\t"
+    months = "Jan Feb Mar Apr May Jun Jul Aug Sep Oct Nov Dec"
+}
+NR > 0 {
+    dev = ($1 > median + mad || $1 < median - mad) ? ($1 > median + mad ? "++" : "--") : "";
+    month = substr(months, ($2 - 1) * 4 + 1, 3);
+    print month, $1, dev
+}' tmp_file | column -t
+
+# Remove temporary file
+rm -f tmp_file
