@@ -19,15 +19,20 @@ awk -F"\t" '
     }
 
     # Modify the data: skip empty values, $3 should be a non-negative value
-    NR > 1 && $1 != "" && $2 != "" && $3 != "" && $4 != "" && $5 != "" && $3 ~/^[0-9]+$/ && $3 > 0 {
+    NR > 1 && $1 != "" && $2 != "" && $3 != "" && $4 != "" && $5 != "" && 
+           $3 ~/^[0-9]+$/ && $3 > 0 {
         # Split data if it is a range by hyphen and use the first date
         if (index($4, "-") > 0) {
-            # Split the substring of $4 before the first "-" and store the components as date array
+            # Split the substring of $4 before the first "-" 
+            # store the components as date array
             split(substr($4, 1, index($4, "-") - 1), date, "/");
         } else {
             # Split $4 directly into date array using "/" as the delimiter
             split($4, date, "/");
         }
+        
+        # Remove whitespace after the year
+        gsub(/ +$/, "", date[3]);
 
         # Remove unwanted characters after / or , from $5
         gsub(/[\/,].*/, "", $5);
@@ -39,7 +44,6 @@ awk -F"\t" '
             else if (date[3] > 50)
                 date[3] += 1900;
         }
-
 
         # Check if the date is valid
         # and skip two-digit years that are greater than 24 or less than 50
