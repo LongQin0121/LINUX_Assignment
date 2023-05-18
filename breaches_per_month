@@ -29,13 +29,13 @@ MEDIAN=$(sort -n tmp_file | awk '{
 }')
 
 # Calculate median absolute deviation (MAD) using ternary operator
-MAD=$(awk -v median="$MEDIAN" '{
+MAD=$( gawk -v median="$MEDIAN" '{
     abs = ($1 > median) ? $1 - median : median - $1;
     a[NR] = abs
 } END {
     asort(a);
     print (NR%2 == 0) ? (a[NR/2] + a[NR/2+1]) / 2 : a[(NR+1)/2]
-}' tmp_file)
+}' tmp_file )
 
 echo "Median: $MEDIAN"
 echo "MAD: $MAD"
@@ -49,7 +49,9 @@ awk -v median="$MEDIAN" -v mad="$MAD" 'BEGIN {
     months = "Jan Feb Mar Apr May Jun Jul Aug Sep Oct Nov Dec"
 }
 NR > 0 {
+    #using ternary operator to get the symbol:++ -- ""
     dev = ($1 >= median + mad || $1 <= median - mad) ? ($1 >= median + mad ? "++" : "--") : "";
+    
     #Extract three-letter month abbreviation
     month = substr(months, ($2 - 1) * 4 + 1, 3);
     print month, $1, dev
