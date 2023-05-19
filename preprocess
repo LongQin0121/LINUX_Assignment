@@ -47,7 +47,8 @@ awk -F"\t" '
 
         # Check if the date is valid
         # and skip two-digit years that are greater than 24 or less than 50
-        if (date[1] > 0 && date[1] < 13 && date[3] > 100) {
+        if (date[1] > 0 && date[1] < 13 && date[3] > 1950 &&
+	    date[3] < 2024 && date [2] > 0 && date[2] < 32) {
             # Extract the month
             month = sprintf("%d", date[1]);
 
