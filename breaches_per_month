@@ -14,12 +14,26 @@ fi
 
 DATA_FILE="$1"
 
-# Extract and format the two-digit month from field $6 directly,
-# then sort and count the unique values, saving the results in tmp_file.
+# Create an array to hold the count of each month
+declare -A month_count
+
+
+# Initialize the month_count array with a count of 0 for all 12 months
+for ((month=1; month<=12; month++)); do
+    month_count[$(printf "%02d" $month)]=0
+done
+
+
+# Read the file line by line and count the occurrence of each month
 awk -F'\t' 'NR>1 {
     month = sprintf("%02d", $6);
-    print month
-}' "$DATA_FILE" | sort | uniq -c > tmp_file
+    month_count[month]++
+} END {
+    for (month in month_count) {
+        print month_count[month], month
+    }
+}' "$DATA_FILE" | sort -k2 > tmp_file
+
 
 # Calculate median using ternary operator
 MEDIAN=$(sort -n tmp_file | awk '{
