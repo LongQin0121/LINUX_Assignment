@@ -20,7 +20,8 @@ awk -F"\t" '
 
     # Modify the data: skip empty values, $3 should be a non-negative value
     NR > 1 && $1 != "" && $2 != "" && $3 != "" && $4 != "" && $5 != "" && 
-           $3 ~/^[0-9]+$/ && $3 > 0 {
+           $2 ~ /^[A-Za-z]{2}$/ &&
+	   $3 ~/^[0-9]+$/ && $3 > 0 {
         # Split data if it is a range by hyphen and use the first date
         if (index($4, "-") > 0) {
             # Split the substring of $4 before the first "-" 
