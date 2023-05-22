@@ -18,27 +18,58 @@ awk -F"\t" '
       print "Name_of_Covered_Entity\tState\tIndividuals_Affected\tDate_of_Breach\tType_of_Breach\tMonth\tYear"
     }
 
-    # Modify the data: skip empty values, $3 should be a non-negative value
-    NR > 1 && $1 != "" && $2 != "" && $3 != "" && $4 != "" && $5 != "" && 
-           $2 ~ /^[A-Za-z]{2}$/ &&
-	   $3 ~/^[0-9]+$/ && $3 > 0 {
+    # Modify the data: skip empty values,print the error message
+    NR > 1 {
+        if ($1 == "") {
+            print "Error in line " NR "! $1(Name_of_Covered_Entity) is empty!" > "/dev/stderr";
+            next;
+        }
+        if ($2 == "") {
+            print "Error in line " NR "! $2(state) is empty!" > "/dev/stderr";
+            next;
+        }
+        if ($3 == "") {
+            print "Error in line " NR "! $3(affected_incidents) is empty!" > "/dev/stderr";
+            next;
+        }
+        if ($4 == "") {
+            print "Error in line " NR "! $4(Date_of_Breach) is empty!" > "/dev/stderr";
+            next;
+        }
+        if ($5 == "") {
+            print "Error in line " NR "! $5(Type_of_Breach) is empty!" > "/dev/stderr";
+            next;
+        }
+        if ($2 !~ /^[A-Za-z]{2}$/) {
+            print "Error in line " NR "! "$2" is not a valid state code!" > "/dev/stderr";
+            next;
+        }
+        if ($3 !~ /^[0-9]+$/) {
+            print "Error in line " NR "! $3(affected_incidents) should be a positive integer!" > "/dev/stderr";
+            next;
+        }
+        if ($3 <= 0) {
+            print "Error in line " NR "! $3(affected_incidents) should be greater than 0!" > "/dev/stderr";
+            next;
+        }
+
         # Split data if it is a range by hyphen and use the first date
         if (index($4, "-") > 0) {
-            # Split the substring of $4 before the first "-" 
+            # Split the substring of $4 before the first "-"
             # store the components as date array
             split(substr($4, 1, index($4, "-") - 1), date, "/");
         } else {
             # Split $4 directly into date array using "/" as the delimiter
             split($4, date, "/");
         }
-        
+
         # Remove whitespace after the year
         gsub(/ +$/, "", date[3]);
 
         # Remove unwanted characters after / or , from $5
         gsub(/[\/,].*/, "", $5);
 
-	# Adjust the year if it has 2 digits
+        # Adjust the year if it has 2 digits
         if (length(date[3]) == 2) {
             if (date[3] < 24)
                 date[3] += 2000;
@@ -49,14 +80,14 @@ awk -F"\t" '
         # Check if the date is valid
         # and skip two-digit years that are greater than 24 or less than 50
         if (date[1] > 0 && date[1] < 13 && date[3] > 1950 &&
-	    date[3] < 2024 && date [2] > 0 && date[2] < 32) {
-            # Extract the month
+            date[3] < 2024 && date[2] > 0 && date[2] < 32) {
             month = sprintf("%d", date[1]);
-
-            # Convert month to single digit if it is less than 10
             if (length(month) == 2 && month < 10)
                 month = substr(month, 2);
-
             print $1"\t"$2"\t"$3"\t"$4"\t"$5"\t"month"\t"date[3];
+        } else {
+		#print the error message
+            print "Error in line " NR " for field Date_of_Breach! Check the day or month or year value!" > "/dev/stderr";
         }
-    }' "$1"  
+    }
+' "$1" 
